@@ -251,7 +251,7 @@ class RecipeAPI(Resource):
     def __filter_recipe(self, recipe_list, filter_cost, filter_time_h, filter_time_min, filter_has_ingredient):
         if len(recipe_list)==0:
             self.random_pick=True
-            recipe_list=self.__search_for_recipes_by_tags("popular") # return popular recipes
+            recipe_list=db.session.query(Recipe).all() # return all BUG
         if filter_cost!=None:
             recipe_list=self.__filter_by_cost(recipe_list, filter_cost)
         if filter_time_h != None and filter_time_min!=None:
@@ -345,6 +345,7 @@ class RecipeAPI(Resource):
         filter_has_ingredients = request.args.get('Filter_has_ingredients')
         limit=int(request.args.get('Limit')) if request.args.get('Limit') else 20
         page=int(request.args.get('Page')) if request.args.get('Page') else 0
+
         '''
         if self.__debug==True:
             self.__debug_clear_table()
@@ -370,9 +371,8 @@ class RecipeAPI(Resource):
         if self.random_pick:
             recipe_list = random.sample(recipe_list, k=min(len(recipe_list), int(limit)))
             page = 0
-
-        recipe_list=recipe_list[limit*page, limit*page+limit]
         
+        recipe_list=recipe_list[limit*page:limit*page+limit]
         return_result=recipes_schema.dump(recipe_list)
         
         return_dict = {"recipes": return_result, "is_random": self.random_pick}
@@ -433,7 +433,7 @@ def sendWelcomeEmail(receipient, user):
 # Background tasks
 # -----------------------------------------------------------------------------
 # update stuff as a scheduled job while server is active
-@scheduler.scheduled_job('interval', seconds=60)
+@scheduler.scheduled_job('interval', seconds=3600)
 def fetchRecipes():
     print("fetching recipes...")
     i = 0
@@ -497,6 +497,7 @@ def updateRecipesToDB():
 
             except Exception as e:
                 print("recipe not updated due to missing fields or other error: %s \n"%e)
+                print("skipping...")
 
     print("done updating recipes.")
 
