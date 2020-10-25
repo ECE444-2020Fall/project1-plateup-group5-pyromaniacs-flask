@@ -340,7 +340,6 @@ class RecipeAPI(Resource):
                     'Limit': {'description': 'number of recipes to return', 'type': 'int'},
                     'Page': {'description': 'page number determines range of data returned: [page x limit -> page x limit + limit]', 'type': 'int'}
                     })
-    @login_required
     def get(self):
         #get params
         recipe_list = []
