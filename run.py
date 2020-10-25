@@ -65,6 +65,7 @@ class UserAPI(Resource):
 
     # @login_required
     @userR.doc(description="Get information for all users.")
+    @login_required
     def get(self):
         all_users = User.query.all()
         result = users_schema.dump(all_users)
@@ -95,6 +96,7 @@ class UserAPI(Resource):
 
     # @login_required
     @userR.doc(description="WARNING: Delete all user information stored in the database.")
+    @login_required
     def delete(self):
         num_rows_deleted = db.session.query(User).delete()
         db.session.commit()
@@ -123,6 +125,7 @@ class LoginAPI(Resource):
         return Response("Login failed! Please confirm that the email and password are correct.", status=403)
 
     @loginR.doc(description="Logging current user out.")
+    @login_required
     def delete(self):
         userId = current_user.id
         logout_user()
@@ -135,6 +138,7 @@ class MailAPI(Resource):
     # @login_required
     @mailR.doc(description="Sends a welcome email to user with their client ID and default password information (Development Email Only).")
     @mailR.param("userID")
+    @login_required
     def get(self):
         userID = request.args.get("userID")
         receipient = User.query.get(userID).email
@@ -299,6 +303,7 @@ class RecipeAPI(Resource):
     #insert recipe to database
     @recipeR.doc(description="Insert recipe to database")
     @recipeR.expect(resourceFields, validate=True)
+    @login_required
     def post(self):
         new_recipe_name=request.json["Name"]
         new_recipe_ingredients=request.json["Ingredients"]
@@ -335,6 +340,7 @@ class RecipeAPI(Resource):
                     'Limit': {'description': 'number of recipes to return', 'type': 'int'},
                     'Page': {'description': 'page number determines range of data returned: [page x limit -> page x limit + limit]', 'type': 'int'}
                     })
+    @login_required
     def get(self):
         #get params
         recipe_list = []
