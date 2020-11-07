@@ -3,10 +3,10 @@ from initializer import db
 from uuid import uuid1
 from werkzeug.security import generate_password_hash
 
+
 # -----------------------------------------------------------------------------
 # DB Models
 # -----------------------------------------------------------------------------
-# User table
 class User(db.Model, UserMixin):
     __tablename__ = "user"
 
@@ -28,7 +28,6 @@ class User(db.Model, UserMixin):
         self.inventory_id = str(uuid1())
 
 
-# Recipe table
 class Recipe(db.Model):
     __tablename__ = "recipe"
     id = db.Column(db.String(40), primary_key=True)
@@ -53,7 +52,6 @@ class Recipe(db.Model):
         self.tags = tags
 
 
-# Instruction table
 class Instruction(db.Model):
     __tablename__ = "recipe_instruction"
     recipe_id = db.Column(db.String(40), db.ForeignKey('recipe.id'), primary_key=True)
@@ -63,14 +61,13 @@ class Instruction(db.Model):
     equipment = db.Column(db.String)
 
     def __init__(self, recipe_id, step_num, step, ingredients, equipment):
-        self.recipe_id = recipe_id 
+        self.recipe_id = recipe_id
         self.step_num = step_num
         self.step_instruction = step
         self.ingredients = ingredients
         self.equipment = equipment
 
 
-# Shopping table
 class ShoppingList(db.Model):
     __tablename__ = "shoppinglist"
 
