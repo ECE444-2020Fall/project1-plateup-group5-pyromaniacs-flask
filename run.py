@@ -8,7 +8,10 @@ from flask import jsonify, request, Response
 from flask_login import current_user, login_user, login_required, logout_user
 from flask_restx import fields, Resource, reqparse
 from initializer import api, app, db, login_manager, ma, scheduler, sp_api
-from models import User, Recipe, Instruction, Inventory, ShoppingList
+
+from models import User, Recipe, Instruction, ShoppingList, Ingredient, Equipment, Inventory
+
+
 from werkzeug.security import check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 
@@ -40,12 +43,22 @@ class InstructionSchema(ma.Schema):
     class Meta:
         fields = ('step_instruction',)
 
+class EquipmentSchema(ma.Schema):
+    class Meta:
+        fields = ('name','img',)
+
+class IngredientSchema(ma.Schema):
+    class Meta:
+        fields = ('name','img',)
+
 # Init schemas
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 recipe_schema = RecipeSchema()
 recipes_schema = RecipeSchema(many=True)
 instructions_schema = InstructionSchema(many=True)
+equipments_schema = EquipmentSchema(many=True)
+ingredients_schema = IngredientSchema(many=True)
 
 # -----------------------------------------------------------------------------
 # Flask API start
@@ -156,24 +169,37 @@ class RecipeDetailAPI(Resource):
         'recipe_id': fields.String,
         'step_num': fields.Integer,
         'step_instruction': fields.String,
-        'ingredients': fields.String,
-        'equipment': fields.String,
+        'ingredients_text': fields.String,
+        'ingredients_image': fields.String,
+        'equipment_text': fields.String,
+        'equipment_image': fields.String,
     })
 
     def __get_recipe_instructions_by_id(self, recipe_id):
         recipe_found = db.session.query(Instruction).filter(Instruction.recipe_id.like(recipe_id)).all()
         return recipe_found
 
+    def __get_recipe_ingredient_by_id(self, recipe_id):
+        recipe_found = db.session.query(Ingredient).filter(Ingredient.recipe_id.like(recipe_id)).all()
+        return recipe_found
+
+    def __get_recipe_equipment_by_id(self, recipe_id):
+        recipe_found = db.session.query(Equipment).filter(Equipment.recipe_id.like(recipe_id)).all()
+        return recipe_found
+
     def __get_recipe_preview_by_id(self, recipe_id):
         recipe_found = db.session.query(Recipe).filter(Recipe.id.like(recipe_id)).all()
         return recipe_found
 
-    def __sort_recipe_instructions_by_step(self, recipe_instruction_list_unsorted):
-        sorted_list = sorted(recipe_instruction_list_unsorted, key=operator.attrgetter("step_num"), reverse=False)
+    def __sort_by_step(self, unsorted_list):
+        sorted_list = sorted(unsorted_list, key=operator.attrgetter("step_num"), reverse=False)
         return sorted_list
 
     def __debug_delete_table(self):
-        db.session.query(Instruction).delete()
+        Instruction.__table__.drop(db.engine)
+        Ingredient.__table__.drop(db.engine)
+        Equipment.__table__.drop(db.engine)
+        #db.session.query(Instruction).delete()
 
     def __debug_show_table(self):
         list = db.session.query(Instruction).all()
@@ -192,12 +218,48 @@ class RecipeDetailAPI(Resource):
             print(list[i].name)
         print("end")
 
+    def __get_object_for_one_step(self, object_list, step_num):
+        list_for_one_step=[]
+        for i in range(len(object_list)):
+            if object_list[i].step_num==step_num:
+                list_for_one_step.append(object_list[i])
+        return list_for_one_step
+
+    def __not_exist_instruction(self, recipe_instruction_object):
+        instruction_list=self.__get_recipe_instructions_by_id(recipe_instruction_object.recipe_id)
+        for i in range(len(instruction_list)):
+            if instruction_list[i].step_num==recipe_instruction_object.step_num:
+                return False
+        return True
+
+    def __organize_return_object(self, recipe_instruction_list, \
+                                 recipe_ingredient_list_sorted,\
+                                 recipe_equipment_list_sorted):
+        dict_list=[]
+        for i in range(len(recipe_instruction_list)):
+            step_instruction=recipe_instruction_list[i]
+            step_number=step_instruction.step_num
+            step_ingredient=self.__get_object_for_one_step(recipe_ingredient_list_sorted, step_number)
+            step_equipement = self.__get_object_for_one_step(recipe_equipment_list_sorted, step_number)
+
+            return_ingredient = ingredients_schema.dump(step_ingredient)
+            return_equipment = equipments_schema.dump(step_equipement)
+            return_dict = {"step_instruction": step_instruction.step_instruction,\
+                           "ingredients": return_ingredient, "equipment": return_equipment, }
+            dict_list.append(return_dict)
+        return dict_list
+
     @login_required
     def get(self, id):
         recipe_id = id
 
         recipe_instruction_list_unsorted=self.__get_recipe_instructions_by_id(recipe_id)
-        recipe_instruction_list_sorted=self.__sort_recipe_instructions_by_step(recipe_instruction_list_unsorted)
+        recipe_ingredient_list_unsorted = self.__get_recipe_ingredient_by_id(recipe_id)
+        recipe_equipment_list_unsorted = self.__get_recipe_equipment_by_id(recipe_id)
+
+        recipe_instruction_list_sorted=self.__sort_by_step(recipe_instruction_list_unsorted)
+        recipe_ingredient_list_sorted=self.__sort_by_step(recipe_ingredient_list_unsorted)
+        recipe_equipment_list_sorted=self.__sort_by_step(recipe_equipment_list_unsorted)
 
         recipe_preview=self.__get_recipe_preview_by_id(id)
 
@@ -206,12 +268,12 @@ class RecipeDetailAPI(Resource):
 
         if(len(recipe_preview)==0):
             return Response("recipe preview not found!", status=500)
+        return_step_list=self.__organize_return_object(recipe_instruction_list_sorted, recipe_ingredient_list_sorted,\
+                                                    recipe_equipment_list_sorted)
+        return_preview=recipe_schema.dump(recipe_preview[0])
+        return_object={"recipe_preview": return_preview, "recipe_instruction":return_step_list}
 
-        return_instruction = instructions_schema.dump(recipe_instruction_list_sorted)
-        return_preview  = recipe_schema.dump(recipe_preview[0])
-        return_dict = {"recipe_instruction": return_instruction, "recipe_preview": return_preview}
-
-        return jsonify(return_dict)
+        return jsonify(return_object)
 
     @recipeR.doc(description="Insert recipe instruction to database")
     @recipeR.expect(resourceFields, validate=True)
@@ -221,13 +283,23 @@ class RecipeDetailAPI(Resource):
         new_instruction_recipe_id = request.json["recipe_id"]
         new_instruction_step_num = request.json["step_num"]
         new_instruction_step_instruction = request.json["step_instruction"]
-        new_instruction_ingredients = request.json["ingredients"]
-        new_instruction_equipment = request.json["equipment"]
+        new_instruction_ingredients_text = request.json["ingredients_text"]
+        new_instruction_ingredients_image = request.json["ingredients_image"]
+        new_instruction_equipment_text = request.json["equipment_text"]
+        new_instruction_equipment_image = request.json["equipment_image"]
 
-        new_instruction=Instruction(new_instruction_recipe_id, new_instruction_step_num,
-                                    new_instruction_step_instruction, new_instruction_ingredients,
-                                    new_instruction_equipment)
-        db.session.add(new_instruction)
+        new_instruction_description = Instruction(new_instruction_recipe_id, new_instruction_step_num,
+                                    new_instruction_step_instruction)
+        new_instruction_ingredient = Ingredient(new_instruction_recipe_id, new_instruction_step_num,
+                                              new_instruction_ingredients_text,
+                                              new_instruction_ingredients_image)
+        new_instruction_equipment = Equipment(new_instruction_recipe_id, new_instruction_step_num,
+                                               new_instruction_equipment_text,
+                                               new_instruction_equipment_image)
+        if self.__not_exist_instruction(new_instruction_description):
+            db.session.add(new_instruction_description)
+        db.session.add(new_instruction_ingredient)
+        db.session.add(new_instruction_equipment)
         db.session.commit()
 
         #self.__debug_show_table()
@@ -245,7 +317,9 @@ class RecipeAPI(Resource):
         'cost': fields.Float,
         'preview_text' : fields.String,
         'preview_media_url': fields.String,
-        'tags': fields.String
+        'tags': fields.String,
+        'user_id': fields.String,
+        'Filter_has_ingredients': fields.Boolean
     })
 
     __dataBaseLength=0
@@ -338,7 +412,46 @@ class RecipeAPI(Resource):
         recipe_list=recipe_list_same_h+recipe_list
         return recipe_list
 
-    def __filter_recipe(self, recipe_list, filter_cost, filter_time_h, filter_time_min, filter_has_ingredient):
+    '''
+    [{"name": "apple", "img": "https://spoonacular.com/cdn/ingredients_250x250/apple.jpg"}, 
+    {"name": "squash", "img": "https://spoonacular.com/cdn/ingredients_250x250/butternut-squash.jpg"},
+    {"name": "soup", "img": "https://spoonacular.com/cdn/ingredients_250x250/"}]
+    '''
+    def __get_ingredient_from_recipe(self, recipe):
+        ingredient_json=recipe.ingredients
+        ingredient_list=json.loads(ingredient_json)
+        name_list=[]
+        for ingredient in ingredient_list:
+            name_list.append(ingredient["name"])
+        return name_list
+
+    def __check_ingredient_in_inventory(self, ingredient_name_list, user_id):
+        for ingredient_name in ingredient_name_list:
+
+            ingredient_in_inventory=db.session.query(Inventory).filter(\
+                Inventory.user_id.like(user_id),\
+                Inventory.ingredient_name.like(ingredient_name)).all()
+            if len(ingredient_in_inventory)==0:
+                return False
+
+            for inventory_entry in ingredient_in_inventory:
+                if inventory_entry.quantity<=0:
+                    return False
+
+        return True
+
+
+    def __filter_by_ingredients(self, recipe_list, user_id):
+        new_recipe_list=[]
+        for recipe in recipe_list:
+            ingredients_name_list=self.__get_ingredient_from_recipe(recipe)
+
+            if self.__check_ingredient_in_inventory(ingredients_name_list, user_id):
+                new_recipe_list.append(recipe)
+        return new_recipe_list
+
+    def __filter_recipe(self, recipe_list, filter_cost, filter_time_h, filter_time_min, \
+                        filter_has_ingredient, user_id):
         if len(recipe_list)==0:
             self.random_pick=True
             recipe_list=db.session.query(Recipe).all()
@@ -347,6 +460,8 @@ class RecipeAPI(Resource):
             recipe_list=self.__filter_by_cost(recipe_list, filter_cost)
         if filter_time_h != None and filter_time_min!=None:
             recipe_list=self.__filter_by_time(recipe_list, filter_time_h, filter_time_min)
+        if filter_has_ingredient == True:
+            recipe_list = self.__filter_by_ingredients(recipe_list, user_id)
 
         if len(recipe_list) ==0:
             self.random_pick = True
@@ -361,19 +476,19 @@ class RecipeAPI(Resource):
         print("current list")
         for i in range(len(list)):
             print(list[i].name)
-            print("id "+str(list[i].id))
+            print("id "+str(list[i].ingredients))
         print("end")
 
     def __debug_add_recipe(self):
-        data = [{'apple': 1}]
+        data = [{"name": "pepper", "img": "img"},{"name": "pepper red", "img": "img2"},{"name": "pepper blue", "img": "img3"}]
         data_json=json.dumps(data)
-        data2 = [{'driedapple': 2}]
+        data2 = [{"name": "random", "img": "img"},{"name": "random2", "img": "img2"},{"name": "random3", "img": "img3"}]
         data2_json = json.dumps(data2)
-        data3 = [{'apple juice': 3}]
+        data3 = [{"name": "tea", "img": "img"},{"name": "leaf", "img": "img2"},{"name": "beef", "img": "img3"}]
         data3_json = json.dumps(data3)
-        data4 = [{'processed apple process': 4}]
+        data4 = [{"name": "tea", "img": "img"},{"name": "leaf", "img": "img2"},{"name": "beef", "img": "img3"}]
         data4_json = json.dumps(data4)
-        data5 = [{'trappletr': 5}]
+        data5= [{"name": "apple", "img": "img"},{"name": "pie", "img": "img2"},{"name": "orange", "img": "img3"}]
         data5_json = json.dumps(data5)
         new_recipe1 = Recipe('us_meal', data_json, 1, 12, 30, data_json, data_json, "normal")
         new_recipe2 = Recipe('chinese_meal', data2_json, 2, 12, 30.5, data2_json, data2_json, "healthy")
@@ -385,10 +500,16 @@ class RecipeAPI(Resource):
         db.session.add(new_recipe3)
         db.session.add(new_recipe4)
         db.session.add(new_recipe5)
+        inventory_entry_one = Inventory("random_user", "tea", 10, "unit")
+        inventory_entry_two = Inventory("random_user", "leaf", 10, "unit")
+        inventory_entry_three = Inventory("random_user", "beef", 10, "unit")
+        db.session.add(inventory_entry_one)
+        db.session.add(inventory_entry_two)
+        db.session.add(inventory_entry_three)
         db.session.commit()
 
     def __debug_clear_table(self):
-
+        db.session.query(Inventory).delete()
         db.session.query(Recipe).delete()
 
     #insert recipe to database
@@ -439,10 +560,10 @@ class RecipeAPI(Resource):
         filter_time_h= request.args.get('Filter_time_h')
         filter_time_min = request.args.get('Filter_time_min')
         filter_cost = request.args.get('Filter_cost')
-        filter_has_ingredients = request.args.get('Filter_has_ingredients')
+        filter_has_ingredients = bool(request.args.get('Filter_has_ingredients')==True) if request.args.get('Filter_has_ingredients') else False
         limit=int(request.args.get('Limit')) if request.args.get('Limit') else 20
         page=int(request.args.get('Page')) if request.args.get('Page') else 0
-
+        user_id=request.args.get('user_id') if request.args.get('user_id') else ""
 
         if self.__debug==True:
             self.__debug_clear_table()
@@ -463,7 +584,8 @@ class RecipeAPI(Resource):
         recipe_list=self.__merge_list(recipe_list_name, recipe_list_ingredient)
         recipe_list=self.__merge_list(recipe_list, recipe_list_tags)
 
-        recipe_list = self.__filter_recipe(recipe_list, filter_cost, filter_time_h, filter_time_min, filter_has_ingredients)
+        recipe_list = self.__filter_recipe(recipe_list, filter_cost, filter_time_h,\
+                                           filter_time_min, filter_has_ingredients, user_id)
 
         if self.random_pick:
             recipe_list = random.sample(recipe_list, k=min(len(recipe_list), int(limit)))
@@ -799,12 +921,21 @@ def updateInstructionsToDB(recipe_id, instructions):
     for step in instructions:
         new_instruction_step_num = step["number"]
         new_instruction_step_instruction = step["step"]
-        new_instruction_ingredients = ", ".join([ingredient["name"] for ingredient in step["ingredients"]])
-        new_instruction_equipment = ", ".join([equipment["name"] for equipment in step["equipment"]])
+        new_instruction_ingredients = json.dumps([{
+            "name":ingredient["name"], 
+            "img":"https://spoonacular.com/cdn/ingredients_250x250/"+ingredient["image"]
+            } for ingredient in step["ingredients"]])
+        new_instruction_equipment = json.dumps([{
+            "name": equipment["name"], 
+            "img":"https://spoonacular.com/cdn/equipment_250x250/"+equipment["image"]
+            } for equipment in step["equipment"]])
+        new_instruction=Instruction(recipe_id, new_instruction_step_num, new_instruction_step_instruction)
+        new_equipment=Equipment(recipe_id, new_instruction_step_num, new_instruction_equipment)
+        new_ingredients = Ingredient(recipe_id, new_instruction_step_num, new_instruction_ingredients)
 
-        new_instruction=Instruction(recipe_id, new_instruction_step_num, new_instruction_step_instruction, \
-            new_instruction_ingredients, new_instruction_equipment)
+        db.session.add(new_equipment)
         db.session.add(new_instruction)
+        db.session.add(new_ingredients)
         
     db.session.commit()
 
