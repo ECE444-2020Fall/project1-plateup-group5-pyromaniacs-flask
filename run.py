@@ -174,7 +174,7 @@ class LoginAPI(Resource):
         A hash of the password is stored for security purposes.
     '''
     @loginR.doc(description="Logging a user into the system and authenticating for \
-         access to deeper APIs.")
+        access to deeper APIs.")
     @loginR.expect(resource_fields, validate=True)
     def post(self):
         email = request.json['email']
