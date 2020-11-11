@@ -6,6 +6,11 @@ from werkzeug.security import generate_password_hash
 
 # -----------------------------------------------------------------------------
 # DB Models
+# Models are fairly simple to read, so no additional comments are added
+# to avoid being too verbose.
+#
+# These models define SQL tables as python sqlalchemy objects to allow
+# easy object manipulation using python syntax.
 # -----------------------------------------------------------------------------
 class User(db.Model, UserMixin):
     __tablename__ = "user"
@@ -51,6 +56,7 @@ class Recipe(db.Model):
         self.preview_media_url = preview_media
         self.tags = tags
 
+
 class Ingredient(db.Model):
     __tablename__ = "recipe_ingredient"
     id = db.Column(db.String(40), primary_key=True)
@@ -58,12 +64,14 @@ class Ingredient(db.Model):
     step_num = db.Column(db.Integer)
     name = db.Column(db.String)
     img = db.Column(db.String)
+
     def __init__(self, recipe_id, step_num, ingredient_text, ingredient_image):
         self.id = str(uuid1())
         self.recipe_id = recipe_id
         self.step_num = step_num
         self.name = ingredient_text
         self.img = ingredient_image
+
 
 class Equipment(db.Model):
     __tablename__ = "recipe_equipment"
@@ -72,6 +80,7 @@ class Equipment(db.Model):
     step_num = db.Column(db.Integer)
     name = db.Column(db.String)
     img = db.Column(db.String)
+
     def __init__(self, recipe_id, step_num, equipment_text, equipment_image):
         self.id = str(uuid1())
         self.recipe_id = recipe_id
@@ -79,9 +88,11 @@ class Equipment(db.Model):
         self.name = equipment_text
         self.img = equipment_image
 
+
 class Instruction(db.Model):
     __tablename__ = "recipe_instruction"
-    recipe_id = db.Column(db.String(40), db.ForeignKey('recipe.id'), primary_key=True)
+    recipe_id = db.Column(db.String(40), db.ForeignKey(
+        'recipe.id'), primary_key=True)
     step_num = db.Column(db.Integer, primary_key=True)
     step_instruction = db.Column(db.String)
 
@@ -90,10 +101,12 @@ class Instruction(db.Model):
         self.step_num = step_num
         self.step_instruction = step
 
+
 class Inventory(db.Model):
     __tablename__ = "inventory"
 
-    user_id = db.Column(db.String(40), db.ForeignKey('user.id'), primary_key=True)
+    user_id = db.Column(db.String(40), db.ForeignKey(
+        'user.id'), primary_key=True)
     ingredient_name = db.Column(db.String(50), primary_key=True)
     quantity = db.Column(db.Float)
     unit = db.Column(db.String(20))
@@ -104,10 +117,12 @@ class Inventory(db.Model):
         self.quantity = quantity
         self.unit = unit
 
+
 class ShoppingList(db.Model):
     __tablename__ = "shoppinglist"
 
-    user_id = db.Column(db.String(40), db.ForeignKey('user.id'), primary_key=True)
+    user_id = db.Column(db.String(40), db.ForeignKey(
+        'user.id'), primary_key=True)
     ingredient_name = db.Column(db.String(50), primary_key=True)
     quantity = db.Column(db.Float)
     unit = db.Column(db.String(20))
