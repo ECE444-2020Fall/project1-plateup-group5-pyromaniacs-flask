@@ -1,7 +1,7 @@
-from flask_login import UserMixin
-from initializer import db
 from uuid import uuid1
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash
+from initializer import db
 
 
 # -----------------------------------------------------------------------------
@@ -45,7 +45,8 @@ class Recipe(db.Model):
     preview_media_url = db.Column(db.String)
     tags = db.Column(db.String)
 
-    def __init__(self, name, ingredients, time_h, time_min, cost, preview_text, preview_media, tags):
+    def __init__(self, name, ingredients, time_h, time_min, cost,
+                 preview_text, preview_media, tags):
         self.id = str(uuid1())
         self.name = name
         self.ingredients = ingredients
@@ -57,49 +58,21 @@ class Recipe(db.Model):
         self.tags = tags
 
 
-class Ingredient(db.Model):
-    __tablename__ = "recipe_ingredient"
-    id = db.Column(db.String(40), primary_key=True)
-    recipe_id = db.Column(db.String(40), db.ForeignKey('recipe.id'))
-    step_num = db.Column(db.Integer)
-    name = db.Column(db.String)
-    img = db.Column(db.String)
-
-    def __init__(self, recipe_id, step_num, ingredient_text, ingredient_image):
-        self.id = str(uuid1())
-        self.recipe_id = recipe_id
-        self.step_num = step_num
-        self.name = ingredient_text
-        self.img = ingredient_image
-
-
-class Equipment(db.Model):
-    __tablename__ = "recipe_equipment"
-    id = db.Column(db.String(40), primary_key=True)
-    recipe_id = db.Column(db.String(40), db.ForeignKey('recipe.id'))
-    step_num = db.Column(db.Integer)
-    name = db.Column(db.String)
-    img = db.Column(db.String)
-
-    def __init__(self, recipe_id, step_num, equipment_text, equipment_image):
-        self.id = str(uuid1())
-        self.recipe_id = recipe_id
-        self.step_num = step_num
-        self.name = equipment_text
-        self.img = equipment_image
-
-
 class Instruction(db.Model):
     __tablename__ = "recipe_instruction"
     recipe_id = db.Column(db.String(40), db.ForeignKey(
         'recipe.id'), primary_key=True)
     step_num = db.Column(db.Integer, primary_key=True)
     step_instruction = db.Column(db.String)
+    equipment = db.Column(db.String)
+    ingredient = db.Column(db.String)
 
-    def __init__(self, recipe_id, step_num, step):
+    def __init__(self, recipe_id, step_num, step, equipement, ingredient):
         self.recipe_id = recipe_id
         self.step_num = step_num
         self.step_instruction = step
+        self.equipment = equipement
+        self.ingredient = ingredient
 
 
 class Inventory(db.Model):
