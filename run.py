@@ -229,7 +229,8 @@ class MailAPI(Resource):
         return Response("NOT OK - Mail NOT Sent!", status=400)
 
 
-# Comment
+# Retrieve the recipe instruction step by step with corresponding
+# equipment and ingredients
 @recipeR.route('/<id>', methods=['GET', 'POST'])
 class RecipeDetailAPI(Resource):
     resourceFields = recipeR.model('Information to get recipe instruction', {
@@ -240,6 +241,9 @@ class RecipeDetailAPI(Resource):
         'equipment': fields.String
     })
 
+    '''
+        Database handlers
+    '''
     def __get_recipe_instructions_by_id(self, recipe_id):
         recipe_found = db.session.query(Instruction).filter(
             Instruction.recipe_id.like(recipe_id)).all()
@@ -250,18 +254,19 @@ class RecipeDetailAPI(Resource):
             Recipe.id.like(recipe_id)).all()
         return recipe_found
 
+    '''
+        Sort recipe instruction list by step
+    '''
     def __sort_by_step(self, unsorted_list):
         sorted_list = sorted(
             unsorted_list, key=operator.attrgetter("step_num"), reverse=False)
         return sorted_list
 
-    def __get_object_for_one_step(self, object_list, step_num):
-        list_for_one_step = []
-        for i in range(len(object_list)):
-            if object_list[i].step_num == step_num:
-                list_for_one_step.append(object_list[i])
-        return list_for_one_step
-
+    '''
+        Check if a conflict instruction existed
+        Two instructions are conflicted if they have
+        same recipe id and step number
+    '''
     def __not_exist_instruction(self, recipe_instruction_object):
         instruction_list = self.__get_recipe_instructions_by_id(
             recipe_instruction_object.recipe_id)
@@ -271,6 +276,10 @@ class RecipeDetailAPI(Resource):
                 return False
         return True
 
+    '''
+        Organize the return object.
+        For each step it should have instruction, ingredient and equipment.
+    '''
     def __organize_return_object(self, recipe_instruction_list):
         dict_list = []
         for instructions in recipe_instruction_list:
@@ -287,6 +296,36 @@ class RecipeDetailAPI(Resource):
             dict_list.append(return_dict)
         return dict_list
 
+    '''
+        HTTP GET /recipe/<recipe_id>
+        Get the corresponding recipe instruction and preview from database. 
+        Organization of return format:
+        {
+            "recipe_preview":{
+            ...
+            }
+            "recipe_instruction":[
+                {
+                    "ingredient":[
+                        {
+                            "name": ...
+                            "img": ...
+                        }
+                        ...
+                    ]
+                    "equipment":[
+                        {
+                            "name": ...
+                            "img": ...
+                        }
+                        ...
+                    ]
+                    "insturction": ...
+                }
+                ...(next step)
+            ]
+        }
+    '''
     @login_required
     def get(self, id):
         recipe_id = id
@@ -315,6 +354,12 @@ class RecipeDetailAPI(Resource):
 
         return jsonify(return_object)
 
+    '''
+        HTTP POST /recipe/<recipe_id>
+        Add one step of recipe instruction including equipement and ingredients
+        to the database. It will check if there is a conflict instruction that has
+        same description exist. If yes, it will not insert the new instruction.
+    '''
     @recipeR.doc(description="Insert recipe instruction to database")
     @recipeR.expect(resourceFields, validate=True)
     @login_required
@@ -363,13 +408,9 @@ class RecipeAPI(Resource):
     __debug = False
     random_pick = False
 
-    # Retrive JSON stuff
-    def __getJson(self, recipeItem):
-        recipePreviewText = recipeItem.preview_text
-        recipePreviewMedia = recipeItem.preview_media_url
-        return recipePreviewText, recipePreviewMedia
-
-    # Search by Name
+    '''
+        Merge two list together without duplication
+    '''
     def __merge_list(self, old_list, new_list):
         in_old = set(old_list)
         in_new = set(new_list)
@@ -377,6 +418,9 @@ class RecipeAPI(Resource):
         merged_list = old_list+list(in_new_not_old)
         return merged_list
 
+    '''
+        Database handler functions
+    '''
     def __search_in_database_by_keyword_ingredient(self, keyword):
         recipe_found = db.session.query(Recipe).filter(
             Recipe.ingredients.like(keyword)).all()
@@ -392,6 +436,11 @@ class RecipeAPI(Resource):
             Recipe.tags.like(keyword)).all()
         return recipe_found
 
+    '''
+        Create searching priority by keyword list
+        Ex: If user search "Beef"
+        Then "Beef" has higher priority than "rosted Beef"
+    '''
     def __search_keyword_list_for_search_by_name(self, keyword):
         keyword_list = []
         keyword_list.append("% "+keyword+" %")
@@ -411,6 +460,9 @@ class RecipeAPI(Resource):
         keyword_list.append("%" + keyword + "%")
         return keyword_list
 
+    '''
+        Try to search recipe by name, tag and ingredient
+    '''
     def __search_for_recipes_by_tags(self, keyword):
         recipe_list = self.__search_in_database_by_keyword_tag(keyword)
         new_recipe_list = self.__search_in_database_by_keyword_tag(
@@ -431,6 +483,8 @@ class RecipeAPI(Resource):
 
     def __search_for_recipes_by_ingredient(self, keyword):
         recipe_list = []
+        #search by both origin case and lower case, origin case has
+        #higher priority.
         keywordList = self.__search_keyword_list_for_search_by_ingredient(
             keyword)
         keywordList = keywordList + \
@@ -442,9 +496,8 @@ class RecipeAPI(Resource):
             recipe_list = self.__merge_list(recipe_list, new_recipe_list)
         return recipe_list
     '''
-    filterRecipe
+    Filter Recipe by cost and time
     '''
-
     def __filter_by_cost(self, recipe_list, filter_cost):
         recipe_list = [
             recipe for recipe in recipe_list
@@ -471,18 +524,7 @@ class RecipeAPI(Resource):
         return recipe_list
 
     '''
-    [
-        {
-            "name": "apple",
-            "img": "https://spoonacular.com/cdn/ingredients_250x250/apple.jpg"
-        },
-        {   "name": "squash",
-            "img": "https://spoonacular.com/cdn/ingredients_250x250/ \
-                butternut-squash.jpg"},
-        {   "name": "soup",
-            "img": "https://spoonacular.com/cdn/ingredients_250x250/"
-        }
-    ]
+        Get ingredient name from recipe preview
     '''
     def __get_ingredient_from_recipe(self, recipe):
         ingredient_json = recipe.ingredients
@@ -492,6 +534,9 @@ class RecipeAPI(Resource):
             name_list.append(ingredient["name"])
         return name_list
 
+    '''
+        Check if all ingredient in a recipe is found in user's inventory
+    '''
     def __check_ingredient_in_inventory(self, ingredient_name_list, user_id):
         for ingredient_name in ingredient_name_list:
 
@@ -507,6 +552,9 @@ class RecipeAPI(Resource):
 
         return True
 
+    '''
+        Filter recipe by ingredient in user's inventory
+    '''
     def __filter_by_ingredients(self, recipe_list, user_id):
         new_recipe_list = []
         for recipe in recipe_list:
@@ -518,6 +566,10 @@ class RecipeAPI(Resource):
                 new_recipe_list.append(recipe)
         return new_recipe_list
 
+    '''
+        Main filter function, filter recipe by cost, time,
+        and ingredient in user's inventory
+    '''
     def __filter_recipe(self, recipe_list, filter_cost, filter_time_h,
                         filter_time_min, filter_has_ingredient, user_id):
         if len(recipe_list) == 0:
@@ -537,7 +589,12 @@ class RecipeAPI(Resource):
             recipe_list = db.session.query(Recipe).all()
         return recipe_list
 
-    # insert recipe to database
+    '''
+        HTTP POST /recipe
+        
+        Add a recipe to the database.
+        Automatically correct the input time for min>60
+    '''
     @recipeR.doc(description="Insert recipe to database")
     @recipeR.expect(resourceFields, validate=True)
     @login_required
@@ -572,15 +629,28 @@ class RecipeAPI(Resource):
             self.__debug_show_table()
         return Response("recipe inserted!", status=200)
 
-    # search recipe by Name and Filter
-    # Example:
-    # http://127.0.0.1:5000/recipe?
-    # Search=juice&
-    # Filter_time_h=10&
-    # Filter_time_min=0&
-    # Filter_cost=10000&
-    # Page=0&
-    # Limit=2
+    '''
+        HTTP GET /recipe/recipe?<Search><Filter_time_h><Filter_time_min><Filter_cost>
+        <Filter_has_ingredients><Page><Limit><user_id>
+        Example:
+        http://127.0.0.1:5000/recipe?Search=juice&Filter_time_h=10&ilter_time_min=0&\
+        Filter_cost=10000&Page=0&Limit=2&user_id=test_user
+        
+        Search the recipe by Name. Filter the recipe by the time and
+        cost limit. Also, it will filter out the recipes that requires
+        ingredient that is not in user's inventory. Then return information
+        for the recipes
+         
+        If no recipe pass the filter and search, it will randomly pick
+        some recipe that match the filter from database and tell
+        the front end that the result is randomly picked up. 
+        
+        return format:
+        {
+            recipe: (recipe information)
+            is_random: True/False
+        }
+    '''
     @recipeR.doc(description="Get recipe preview json by name and filter",
                  params={
                         'Search':
