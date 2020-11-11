@@ -1029,7 +1029,7 @@ class ShoppingFlashToInventoryAPI(Resource):
 # Run API service
 if __name__ == '__main__':
     db.create_all()
-    download_recipes()
+    # download_recipes() # Only necessary if not enough recipes
     scheduler.start()
 
     app.run(host='0.0.0.0', debug=False)
