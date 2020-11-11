@@ -7,11 +7,12 @@ from flask_login import current_user, login_user, login_required, logout_user
 from flask_restx import fields, Resource
 from werkzeug.security import check_password_hash
 
-from initializer import api, app, db, ma, scheduler
+from initializer import api, app, db, scheduler
 from models import User, Recipe, Instruction, ShoppingList, Inventory
 from util import flat_list, send_welcome_email
 from background import download_recipes
-
+from schemas import UserSchema, RecipeSchema, InstructionSchema,\
+    EquipmentSchema, IngredientSchema
 
 # -----------------------------------------------------------------------------
 # Configure Namespaces
@@ -36,64 +37,11 @@ inventoryR = api.namespace(
 shoppingR = api.namespace(
     'shopping', description='User shopping list operations')
 
-
 # -----------------------------------------------------------------------------
-# DB Schemas (Marshmallow)
+# Marshmallow schemas
 #
-# These schemas define the serialization from sqlalchemy objects to JSON
-# documents suitable for return from the API, and vice-versa (loading json
-# into objects).
-# -----------------------------------------------------------------------------
-
-# Schema to serialize and deserialize the user object
-class UserSchema(ma.Schema):
-    class Meta:
-        fields = (
-            'id',
-            'name',
-            'email',
-            'password',
-            'settings_id',
-            'shopping_id',
-            'inventory_id'
-        )
-
-
-# Schema to serialize and deserialize the recipe overview object
-class RecipeSchema(ma.Schema):
-    class Meta:
-        fields = (
-            'id',
-            'name',
-            'ingredients',
-            'time_h',
-            'time_min',
-            'cost',
-            'preview_text',
-            'preview_media_url',
-            'tags'
-        )
-
-
-# Schema to serialize and deserialize the recipe instruction object
-class InstructionSchema(ma.Schema):
-    class Meta:
-        fields = ('step_instruction',)
-
-
-# Schema to serialize and deserialize the step equipment object
-class EquipmentSchema(ma.Schema):
-    class Meta:
-        fields = ('name', 'img',)
-
-
-# Schema to serialize and deserialize the step ingredient object
-class IngredientSchema(ma.Schema):
-    class Meta:
-        fields = ('name', 'img',)
-
-
 # Initialize schemas (many = True auto formats several objects into an array)
+# -----------------------------------------------------------------------------
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 recipe_schema = RecipeSchema()
