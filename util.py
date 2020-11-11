@@ -27,7 +27,7 @@ def send_welcome_email(receipient, user, password):
 
     subject = 'Welcome to PlateUp - %s' % name
 
-    with open('welcome_email.html', 'r') as file:
+    with open('templates/welcome_email.html', 'r') as file:
         template = file.read()
         body = template % (email, str(user.id), password)
 
