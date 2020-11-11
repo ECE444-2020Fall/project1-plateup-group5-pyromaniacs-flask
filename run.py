@@ -28,7 +28,6 @@ from schemas import UserSchema, RecipeSchema, InstructionSchema,\
 plateupR = api.namespace('plate-up', description='PlateUp operations')
 userR = api.namespace('user', description='User operations')
 loginR = api.namespace('login', description='Login/logout operations')
-mailR = api.namespace('mail', description='Mailing operations')
 recipeR = api.namespace('recipe', description='Preview of recipes')
 recipeDetailR = api.namespace(
     'recipeDetail', description='Instruction level details for recipes')
@@ -70,8 +69,6 @@ class Main(Resource):
 
 # The user route, for all user related functinoality such as creating users,
 # retrieving users, and deleting users.
-
-
 @userR.route('')
 class UserAPI(Resource):
     '''
@@ -126,7 +123,7 @@ class UserAPI(Resource):
 
         # Sends welcome email to user, if it doesn't work, then the email
         # address is likely invalid
-        if not send_welcome_email(email, new_user):
+        if not send_welcome_email(email, new_user, password):
             return Response(
                 "Mail not sent! Invalid email or server issues, \
                 user not saved.",
@@ -201,32 +198,6 @@ class LoginAPI(Resource):
         userId = current_user.id
         logout_user()
         return Response("Logout successful. User %s" % userId, status=200)
-
-
-# The mail route used for sending messages to the user, including
-# welcome emails and shopping list reminders.
-@mailR.route('')
-class MailAPI(Resource):
-    '''
-        HTTP GET /mail?userID=<user_id>
-        Sends a welcome email to user with user_id.
-        Used mainly for testing the mailing pipeline.
-        Emails are often sent directly and not through nested API calls.
-    '''
-    @mailR.doc(
-        description="Sends a welcome email to user with their client ID \
-            and default password information."
-    )
-    @mailR.param("userID")
-    @login_required
-    def get(self):
-        userID = request.args.get("userID")
-        receipient = User.query.get(userID).email
-
-        if send_welcome_email(receipient, userID):
-            return Response("OK - Mail Sent!", status=200)
-
-        return Response("NOT OK - Mail NOT Sent!", status=400)
 
 
 # Comment

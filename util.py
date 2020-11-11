@@ -21,9 +21,8 @@ def load_user(uid):
 
 
 # Sends the welcome email, including the template
-def send_welcome_email(receipient, user):
+def send_welcome_email(receipient, user, password):
     name = user.name
-    password = user.password
     email = user.email
 
     subject = 'Welcome to PlateUp - %s' % name
