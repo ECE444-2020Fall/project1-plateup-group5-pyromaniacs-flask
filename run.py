@@ -109,7 +109,7 @@ class UserAPI(Resource):
     @userR.expect(resource_fields, validate=True)
     def post(self):
         name = request.json['name']
-        email = request.json['email']
+        email = request.json['email'].lower()
         password = request.json['password']
 
         # Checks that the user email is unique
@@ -177,7 +177,7 @@ class LoginAPI(Resource):
         access to deeper APIs.")
     @loginR.expect(resource_fields, validate=True)
     def post(self):
-        email = request.json['email']
+        email = request.json['email'].lower()
         password = request.json['password']
         user = User.query.filter_by(email=email).first()
 

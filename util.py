@@ -9,9 +9,9 @@ from models import User, Recipe, Instruction
 # -----------------------------------------------------------------------------
 # Utility functions
 # -----------------------------------------------------------------------------
-# Flattens list into a string
+# Flattens list into a string list
 def flat_list(ls):
-    return ["%s" % v for v in ls]
+    return ["%s" % v.lower() for v in ls]
 
 
 # Callback to reload the user object
