@@ -2,10 +2,13 @@
 
 Hello! Welcome to PlateUp's API service submodule.
 
-###### Main Repo Holding React Native Client App: https://github.com/ECE444-2020Fall/project1-plateup-group5-pyromaniacs
+###### Main Repo: https://github.com/ECE444-2020Fall/project1-plateup-group5-pyromaniacs
 
 ###### Heroku API service (staging): https://sheltered-thicket-73220.herokuapp.com/
 
+This is a submodule of the PlateUp main repo, all development instructions are available in the main repo. This submodule was created near beta release to facilitate heroku staging deployment, and to better track issues and update documentation. 
+
+ 
 ## OpenAPI (formerly swagger) documentation overview 
 <p align="center">
 <img alt="Overview of swagger routes" src="documentation/swagger_routes.png" width="90%" align="center"/>
