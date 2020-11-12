@@ -18,7 +18,7 @@ The following shows a sample flow of the user account creation process as seen f
  
 ![User onboarding](documentation/user_onboarding.gif "Onboarding a new user")
  
-
+ 
 ### User Login
 Logging in after account creation is as simple as inputting the user's email and password, just like most mobile apps.
  
@@ -35,12 +35,12 @@ After a new user registers and logs in, they can immediately search recipes. By 
  
 ![Recipe_without_search](documentation/recipe_no_search.gif "Fetching a random list of popular recipes") 
  
-
+ 
 Of course, all the search and filtering functionality is also supported. Here is an example of searching for chicken. Through the backend, the returned json is a bit difficult to read (hence the mobile app experience is necessary), but still possible to see that the search functions as expected.
  
 ![Recipe_with_search](documentation/recipe_search.gif "Fetching a searched list of chicken recipes") 
  
-
+ 
 ### Inventory, Shopping List, and Recipes based on Inventory Checking
 The original intent of the app was the recommend recipes based on available ingredients, and this is fully supported through applying filters. More interestingly, we also support automating the process of checking whether or not the user has all the ingredients for a recipe if they choose to go ahead with cooking it (rather than just searching for recipes). To make this more clear, the following are the demos.
 
@@ -48,22 +48,22 @@ Once a user selects a recipe, they can copy the recipe ID and their user ID and 
  
 ![Recipe_check - not enough ingredients](documentation/recipe_check_no_ingredients.gif "Using the recipe checker - not enough ingredients") 
  
-
+ 
 If the user doesn't have enough ingredients, the missing ingredients are automatically sent to the user's shopping list, so that they can buy it on their next grocery trip. Of course, this demonstrates the GET request to see the updated shopping list with ingredients required by the recipe (since this was a new user, their inventory and shopping list were both empty). The user can also manually add items to either their inventory or shopping list through POST, not shown here.
  
 ![Recipe_check - shopping list](documentation/recipe_shopping_list.gif "Using the shopping list API") 
  
-
+ 
 After the user's grocery trip, there is a /flash endpoint for shopping list that pushes their list items to their inventory without having to manually manage it. For now, the flash will push all the shopping list items, but it is possible to expand this to support partial transfers in the future (user can select which items they bought and update the partial list to inventory). After flashing, we can see that the user's inventory is now populated with the ingredients from the shopping list. The shopping list is now empty. 
  
 ![Recipe_check - shopping list flash](documentation/flash_to_inventory.gif "Using the shopping list flash endpoint") 
  
-
+ 
 Finally, now that the user has all the ingredients, they can once again use the recipe checker to cook the specified recipe. Now, the service will deduct all the appropriate ingredients from their inventory. This gif shows the cleared inventory after the user cooks the recipe, which was the initial state before all these steps.
  
 ![Recipe_check - final cooking and inventory deduction](documentation/cleared_inventory.gif "Cooking the recipe with sufficient ingredients") 
  
-
+ 
 To summarize, we just showed through entirely backend calls a user's journey as they are onboarded, logged in, searched for a recipe, tried to cook a recipe and not have enough ingredients, used the shopping list to acquire the ingredients, pushing the purchased ingredients to their inventory, cooking the recipe with ingredients from the inventory, and finally they once again have a clear inventory as those ingredients were deducted.
 
 
