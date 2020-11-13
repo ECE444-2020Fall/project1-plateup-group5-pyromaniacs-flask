@@ -9,8 +9,8 @@ from werkzeug.security import check_password_hash
 
 from initializer import api, app, db, scheduler
 from models import User, Recipe, Instruction, ShoppingList, Inventory
-from util import flat_list, send_welcome_email
-from background import download_recipes, update_recipes
+from util import flat_list, send_welcome_email, update_recipes
+from background import download_recipes
 from schemas import UserSchema, RecipeSchema, InstructionSchema, \
     EquipmentSchema, IngredientSchema
 
