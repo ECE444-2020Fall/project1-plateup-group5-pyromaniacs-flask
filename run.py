@@ -28,7 +28,6 @@ from schemas import UserSchema, RecipeSchema, InstructionSchema, \
 plateupR = api.namespace('plate-up', description='PlateUp operations')
 userR = api.namespace('user', description='User operations')
 loginR = api.namespace('login', description='Login/logout operations')
-mailR = api.namespace('mail', description='Mailing operations')
 recipeR = api.namespace('recipe', description='Preview of recipes')
 recipeDetailR = api.namespace(
     'recipeDetail', description='Instruction level details for recipes')
@@ -72,8 +71,6 @@ class Main(Resource):
 
 # The user route, for all user related functinoality such as creating users,
 # retrieving users, and deleting users.
-
-
 @userR.route('')
 class UserAPI(Resource):
     '''
@@ -113,7 +110,7 @@ class UserAPI(Resource):
     @userR.expect(resource_fields, validate=True)
     def post(self):
         name = request.json['name']
-        email = request.json['email']
+        email = request.json['email'].lower()
         password = request.json['password']
 
         # Checks that the user email is unique
@@ -130,7 +127,7 @@ class UserAPI(Resource):
 
         # Sends welcome email to user, if it doesn't work, then the email
         # address is likely invalid
-        if not send_welcome_email(email, new_user):
+        if not send_welcome_email(email, new_user, password):
             return Response(
                 "Mail not sent! Invalid email or server issues, \
                 user not saved.",
@@ -180,10 +177,10 @@ class LoginAPI(Resource):
     '''
 
     @loginR.doc(description="Logging a user into the system and authenticating for \
-         access to deeper APIs.")
+        access to deeper APIs.")
     @loginR.expect(resource_fields, validate=True)
     def post(self):
-        email = request.json['email']
+        email = request.json['email'].lower()
         password = request.json['password']
         user = User.query.filter_by(email=email).first()
 
@@ -208,6 +205,7 @@ class LoginAPI(Resource):
         userId = current_user.id
         logout_user()
         return Response("Logout successful. User %s" % userId, status=200)
+
 
 
 # The mail route used for sending messages to the user, including
@@ -1137,7 +1135,7 @@ class ShoppingFlashToInventoryAPI(Resource):
 # Run API service
 if __name__ == '__main__':
     db.create_all()
-    download_recipes()
+    # download_recipes() # Only necessary if not enough recipes
     scheduler.start()
 
     app.run(host='0.0.0.0')

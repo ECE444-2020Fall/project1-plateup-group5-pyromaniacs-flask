@@ -9,7 +9,7 @@ from models import User, Recipe, Instruction
 # -----------------------------------------------------------------------------
 # Utility functions
 # -----------------------------------------------------------------------------
-# Flattens list into a string
+# Flattens list into a string list
 def flat_list(ls):
     return ["%s" % v for v in ls]
 
@@ -21,14 +21,13 @@ def load_user(uid):
 
 
 # Sends the welcome email, including the template
-def send_welcome_email(receipient, user):
+def send_welcome_email(receipient, user, password):
     name = user.name
-    password = user.password
     email = user.email
 
     subject = 'Welcome to PlateUp - %s' % name
 
-    with open('welcome_email.html', 'r') as file:
+    with open('templates/welcome_email.html', 'r') as file:
         template = file.read()
         body = template % (email, str(user.id), password)
 

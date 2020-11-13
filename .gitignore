@@ -1,0 +1,8 @@
+### Flask ###
+email_config.ini
+db.sqlite
+
+### Miscellaneous ###
+__pycache__
+tests/__pycache__
+tests/test_db.sqlite
