@@ -419,7 +419,6 @@ class RecipeAPI(Resource):
 
     __dataBaseLength = 0
     __parser = ''
-    __debug = False
     random_pick = False
 
     '''
@@ -550,9 +549,7 @@ class RecipeAPI(Resource):
     def __get_ingredient_from_recipe(self, recipe):
         ingredient_json = recipe.ingredients
         ingredient_list = json.loads(ingredient_json)
-        name_list = []
-        for ingredient in ingredient_list:
-            name_list.append(ingredient["name"])
+        name_list = ingredient_list.keys()
         return name_list
 
     '''
@@ -659,7 +656,7 @@ class RecipeAPI(Resource):
         HTTP GET /recipe/recipe?<Search><Filter_time_h><Filter_time_min><Filter_cost>
         <Filter_has_ingredients><Page><Limit><user_id>
         Example:
-        http://127.0.0.1:5000/recipe?Search=juice&Filter_time_h=10&ilter_time_min=0&\
+        http://127.0.0.1:5000/recipe?Search=meal&Filter_time_h=10&ilter_time_min=0&\
         Filter_cost=10000&Page=0&Limit=2&user_id=test_user
         
         Search the recipe by Name. Filter the recipe by the time and
@@ -717,6 +714,13 @@ class RecipeAPI(Resource):
                              'description': 'page number determines range of data \
                                 returned: \
                                 [page x limit -> page x limit + limit]',
+                             'type': 'int'
+                         },
+                     'user_id':
+                         {
+                             'description': 'user id for checking the user inventory \
+                                    returned: \
+                                    [page x limit -> page x limit + limit]',
                              'type': 'int'
                          }
                  })
@@ -1135,7 +1139,7 @@ if __name__ == '__main__':
     download_recipes()
     scheduler.start()
 
-    app.run(host='0.0.0.0', debug=False)
+    app.run(host='0.0.0.0')
 
     # Terminate background tasks
     scheduler.shutdown()
