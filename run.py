@@ -696,7 +696,7 @@ class RecipeAPI(Resource):
                          },
                      'user_id':
                          {
-                             'description': 'user id for checking the user inventory    
+                             'description': 'user id for checking the user inventory',
                              'type': 'int'
                          }
                  })
