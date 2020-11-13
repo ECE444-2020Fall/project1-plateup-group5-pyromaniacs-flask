@@ -580,6 +580,15 @@ class RecipeAPI(Resource):
         if len(recipe_list) == 0:
             self.random_pick = True
             recipe_list = db.session.query(Recipe).all()
+            if filter_cost is not None:
+                recipe_list = self.__filter_by_cost(recipe_list, filter_cost)
+            if filter_time_h is not None and filter_time_min is not None:
+                recipe_list = self.__filter_by_time(
+                    recipe_list, filter_time_h, filter_time_min)
+            if filter_has_ingredient:
+                recipe_list = self.__filter_by_ingredients(recipe_list, user_id)
+
+
         return recipe_list
 
     '''
@@ -619,8 +628,6 @@ class RecipeAPI(Resource):
 
         db.session.add(new_recipe)
         db.session.commit()
-        if self.__debug:
-            self.__debug_show_table()
         return Response("recipe inserted!", status=200)
 
     '''
