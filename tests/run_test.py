@@ -180,7 +180,7 @@ def add_instructions(client, id):
 def add_recipe(client):
     post_recipe(client, {
         "Name": "Test recipe name",
-        "Ingredients": json.dumps([{"Test ingr 1": 6, "Test ingr 2": "1.5 Tbs"}]),
+        "Ingredients": json.dumps([{"tea": "1 unit", "beef": "2 unit"}]),
         "time_h": 0,
         "time_min": 5,
         "cost": 1.0,
@@ -280,3 +280,61 @@ def test_get_post_shopping(client):
 ################################################################################
 # Implemented by Jingxuan Su for RecipeInventoryCheckerAPI - 2020/11/11
 ################################################################################
+
+def activate_checker(client):
+    recipe_id = get_id(client)
+    return client.get("/recipe/"+str(recipe_id)+"/check/user1")
+
+def add_recipe_version_two(client):
+    rv=post_recipe(client, {
+        "Name": "Test recipe name",
+        "Ingredients": json.dumps({"tea": "1 unit", "beef": "2 unit"}),
+        "time_h": 0,
+        "time_min": 5,
+        "cost": 1.0,
+        "preview_text": "Test preview string",
+        "preview_media_url": "https://testurl.com/img/test.jpg",
+        "tags": "vegetarian, vegan"
+    })
+
+def test_get_recipe_inventory_checker(client):
+    rv = login(client, app.config["EMAIL"], app.config["PASSWORD"])
+    assert rv.json["email"] == app.config["EMAIL"]
+
+    add_recipe_version_two(client)
+    inventory = {"inventory": {"tea": {"qty": 13.4, "unit": "unit"}, "beef": {"qty": 13.4, "unit": "unit"}}}
+    rv = post_inventory(client, inventory)
+    assert rv.json["inventory"]["tea"]["qty"] == 13.4
+
+    rv=activate_checker(client)
+    assert rv.status == "200 OK"
+    assert rv.data == b"Inventory updated, enough ingredients to proceed!"
+
+    rv=get_inventory(client,"user1")
+    assert rv.json["inventory"]["tea"]["qty"] == 12.4
+    assert rv.json["inventory"]["beef"]["qty"] == 11.4
+
+################################################################################
+# Implemented by Jingxuan Su for Flash API - 2020/11/11
+################################################################################
+
+def activate_flash(client):
+    return client.post("/shopping/flash", json={"user_id" : "user1"})
+
+def test_flash(client):
+    rv = login(client, app.config["EMAIL"], app.config["PASSWORD"])
+    assert rv.json["email"] == app.config["EMAIL"]
+
+    shopping = {"shopping": {"name1": {"qty": 13.4, "unit": "string"}, "tea": {"qty": 13.4, "unit": "unit"}, "beef": {"qty": 13.4, "unit": "unit"}}}
+    rv = post_shopping(client, shopping)
+    assert rv.json["shopping"]["name1"]["qty"] == 13.4
+
+    inventory = {"inventory": {"tea": {"qty": 13.4, "unit": "unit"}, "beef": {"qty": 13.4, "unit": "unit"}}}
+    rv = post_inventory(client, inventory)
+    assert rv.json["inventory"]["tea"]["qty"] == 13.4
+
+    rv = activate_flash(client)
+    print(rv)
+    assert rv.json["inventory"]["tea"]["qty"] == 26.8
+    assert rv.json["inventory"]["beef"]["qty"] == 26.8
+
