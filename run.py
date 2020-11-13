@@ -207,34 +207,6 @@ class LoginAPI(Resource):
         return Response("Logout successful. User %s" % userId, status=200)
 
 
-
-# The mail route used for sending messages to the user, including
-# welcome emails and shopping list reminders.
-@mailR.route('')
-class MailAPI(Resource):
-    '''
-        HTTP GET /mail?userID=<user_id>
-        Sends a welcome email to user with user_id.
-        Used mainly for testing the mailing pipeline.
-        Emails are often sent directly and not through nested API calls.
-    '''
-
-    @mailR.doc(
-        description="Sends a welcome email to user with their client ID \
-            and default password information."
-    )
-    @mailR.param("userID")
-    @login_required
-    def get(self):
-        userID = request.args.get("userID")
-        receipient = User.query.get(userID).email
-
-        if send_welcome_email(receipient, userID):
-            return Response("OK - Mail Sent!", status=200)
-
-        return Response("NOT OK - Mail NOT Sent!", status=400)
-
-
 # Retrieve the recipe instruction step by step with corresponding
 # equipment and ingredients
 @recipeR.route('/<id>', methods=['GET', 'POST'])
