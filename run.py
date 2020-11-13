@@ -619,8 +619,6 @@ class RecipeAPI(Resource):
 
         db.session.add(new_recipe)
         db.session.commit()
-        if self.__debug:
-            self.__debug_show_table()
         return Response("recipe inserted!", status=200)
 
     '''
