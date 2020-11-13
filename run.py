@@ -401,7 +401,8 @@ class RecipeDetailAPI(Resource):
         return Response("recipe instruction inserted!", status=200)
 
 
-# Comment
+# Retrieve recipe based on the search keyword and filters
+# Add recipe to the database
 @recipeR.route('', methods=['GET', 'POST'])
 class RecipeAPI(Resource):
     resourceFields = recipeR.model('Information to get recipe preview', {
