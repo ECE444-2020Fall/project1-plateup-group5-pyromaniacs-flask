@@ -11,7 +11,7 @@ from initializer import api, app, db, scheduler
 from models import User, Recipe, Instruction, ShoppingList, Inventory
 from util import flat_list, send_welcome_email
 from background import download_recipes
-from schemas import UserSchema, RecipeSchema, InstructionSchema,\
+from schemas import UserSchema, RecipeSchema, InstructionSchema, \
     EquipmentSchema, IngredientSchema
 
 # -----------------------------------------------------------------------------
@@ -63,9 +63,11 @@ class Main(Resource):
         HTTP GET /
         Returns a hello world message if and only if the user is logged in.
     '''
+
     @login_required
     def get(self):
         return "Hello! This is the backend for PlateUp - a chef's co-pilot."
+
 
 # The user route, for all user related functinoality such as creating users,
 # retrieving users, and deleting users.
@@ -87,6 +89,7 @@ class UserAPI(Resource):
         HTTP GET /user
         Returns the complete list of all users in the system.
     '''
+
     @login_required
     @userR.doc(description="Get information for all users.")
     def get(self):
@@ -101,6 +104,7 @@ class UserAPI(Resource):
         Validates the User Information resource fields.
         Login is not required as this is for new user account creation.
     '''
+
     @userR.doc(description="Register a new user to the system with \
         complete information.")
     @userR.expect(resource_fields, validate=True)
@@ -141,6 +145,7 @@ class UserAPI(Resource):
         (same as resetting database for users)
         Used only in testing, not production friendly.
     '''
+
     @userR.doc(description="WARNING: Delete all user information stored in \
         the database.")
     @login_required
@@ -170,6 +175,7 @@ class LoginAPI(Resource):
         The password is checked against the hash stored in the database.
         A hash of the password is stored for security purposes.
     '''
+
     @loginR.doc(description="Logging a user into the system and authenticating for \
         access to deeper APIs.")
     @loginR.expect(resource_fields, validate=True)
@@ -192,6 +198,7 @@ class LoginAPI(Resource):
         HTTP DELETE /login
         Logs the current user out, based on session id from the client side.
     '''
+
     @loginR.doc(description="Logging current user out.")
     @login_required
     def delete(self):
@@ -200,7 +207,8 @@ class LoginAPI(Resource):
         return Response("Logout successful. User %s" % userId, status=200)
 
 
-# Comment
+# Retrieve the recipe instruction step by step with corresponding
+# equipment and ingredients
 @recipeR.route('/<id>', methods=['GET', 'POST'])
 class RecipeDetailAPI(Resource):
     resourceFields = recipeR.model('Information to get recipe instruction', {
@@ -210,6 +218,10 @@ class RecipeDetailAPI(Resource):
         'ingredients': fields.String,
         'equipment': fields.String
     })
+
+    '''
+        Database handlers
+    '''
 
     def __get_recipe_instructions_by_id(self, recipe_id):
         recipe_found = db.session.query(Instruction).filter(
@@ -221,17 +233,20 @@ class RecipeDetailAPI(Resource):
             Recipe.id.like(recipe_id)).all()
         return recipe_found
 
+    '''
+        Sort recipe instruction list by step
+    '''
+
     def __sort_by_step(self, unsorted_list):
         sorted_list = sorted(
             unsorted_list, key=operator.attrgetter("step_num"), reverse=False)
         return sorted_list
 
-    def __get_object_for_one_step(self, object_list, step_num):
-        list_for_one_step = []
-        for i in range(len(object_list)):
-            if object_list[i].step_num == step_num:
-                list_for_one_step.append(object_list[i])
-        return list_for_one_step
+    '''
+        Check if a conflict instruction existed
+        Two instructions are conflicted if they have
+        same recipe id and step number
+    '''
 
     def __not_exist_instruction(self, recipe_instruction_object):
         instruction_list = self.__get_recipe_instructions_by_id(
@@ -241,6 +256,11 @@ class RecipeDetailAPI(Resource):
                     recipe_instruction_object.step_num:
                 return False
         return True
+
+    '''
+        Organize the return object.
+        For each step it should have instruction, ingredient and equipment.
+    '''
 
     def __organize_return_object(self, recipe_instruction_list):
         dict_list = []
@@ -257,6 +277,37 @@ class RecipeDetailAPI(Resource):
 
             dict_list.append(return_dict)
         return dict_list
+
+    '''
+        HTTP GET /recipe/<recipe_id>
+        Get the corresponding recipe instruction and preview from database.
+        Organization of return format:
+        {
+            "recipe_preview":{
+            ...
+            }
+            "recipe_instruction":[
+                {
+                    "ingredient":[
+                        {
+                            "name": ...
+                            "img": ...
+                        }
+                        ...
+                    ]
+                    "equipment":[
+                        {
+                            "name": ...
+                            "img": ...
+                        }
+                        ...
+                    ]
+                    "insturction": ...
+                }
+                ...(next step)
+            ]
+        }
+    '''
 
     @login_required
     def get(self, id):
@@ -286,6 +337,13 @@ class RecipeDetailAPI(Resource):
 
         return jsonify(return_object)
 
+    '''
+        HTTP POST /recipe/<recipe_id>
+        Add one step of recipe instruction including equipement and ingredients
+        to the database. It will check if there is a conflict instruction that has
+        same description exist. If yes, it will not insert the new instruction.
+    '''
+
     @recipeR.doc(description="Insert recipe instruction to database")
     @recipeR.expect(resourceFields, validate=True)
     @login_required
@@ -313,7 +371,8 @@ class RecipeDetailAPI(Resource):
         return Response("recipe instruction inserted!", status=200)
 
 
-# Comment
+# Retrieve recipe based on the search keyword and filters
+# Add recipe to the database
 @recipeR.route('', methods=['GET', 'POST'])
 class RecipeAPI(Resource):
     resourceFields = recipeR.model('Information to get recipe preview', {
@@ -331,22 +390,22 @@ class RecipeAPI(Resource):
 
     __dataBaseLength = 0
     __parser = ''
-    __debug = False
     random_pick = False
 
-    # Retrive JSON stuff
-    def __getJson(self, recipeItem):
-        recipePreviewText = recipeItem.preview_text
-        recipePreviewMedia = recipeItem.preview_media_url
-        return recipePreviewText, recipePreviewMedia
+    '''
+        Merge two list together without duplication
+    '''
 
-    # Search by Name
     def __merge_list(self, old_list, new_list):
         in_old = set(old_list)
         in_new = set(new_list)
-        in_new_not_old = in_new-in_old
-        merged_list = old_list+list(in_new_not_old)
+        in_new_not_old = in_new - in_old
+        merged_list = old_list + list(in_new_not_old)
         return merged_list
+
+    '''
+        Database handler functions
+    '''
 
     def __search_in_database_by_keyword_ingredient(self, keyword):
         recipe_found = db.session.query(Recipe).filter(
@@ -363,9 +422,15 @@ class RecipeAPI(Resource):
             Recipe.tags.like(keyword)).all()
         return recipe_found
 
+    '''
+        Create searching priority by keyword list
+        Ex: If user search "Beef"
+        Then "Beef" has higher priority than "rosted Beef"
+    '''
+
     def __search_keyword_list_for_search_by_name(self, keyword):
         keyword_list = []
-        keyword_list.append("% "+keyword+" %")
+        keyword_list.append("% " + keyword + " %")
         keyword_list.append("%" + keyword + " %")
         keyword_list.append("% " + keyword + "%")
         keyword_list.append("%" + keyword + "%")
@@ -376,11 +441,15 @@ class RecipeAPI(Resource):
         keyword_list.append("%\"" + keyword + "\"%")
         keyword_list.append("%\"" + keyword + " %")
         keyword_list.append("%" + keyword + "\"%")
-        keyword_list.append("% "+keyword+" %")
+        keyword_list.append("% " + keyword + " %")
         keyword_list.append("%" + keyword + " %")
         keyword_list.append("% " + keyword + "%")
         keyword_list.append("%" + keyword + "%")
         return keyword_list
+
+    '''
+        Try to search recipe by name, tag and ingredient
+    '''
 
     def __search_for_recipes_by_tags(self, keyword):
         recipe_list = self.__search_in_database_by_keyword_tag(keyword)
@@ -393,7 +462,7 @@ class RecipeAPI(Resource):
         recipe_list = []
         keywordList = self.__search_keyword_list_for_search_by_name(keyword)
         keywordList = keywordList + \
-            self.__search_keyword_list_for_search_by_name(keyword.lower())
+                      self.__search_keyword_list_for_search_by_name(keyword.lower())
         for i in range(len(keywordList)):
             new_recipe_list = self.__search_in_database_by_keyword_name(
                 keywordList[i])
@@ -402,18 +471,21 @@ class RecipeAPI(Resource):
 
     def __search_for_recipes_by_ingredient(self, keyword):
         recipe_list = []
+        # search by both origin case and lower case, origin case has
+        # higher priority.
         keywordList = self.__search_keyword_list_for_search_by_ingredient(
             keyword)
         keywordList = keywordList + \
-            self.__search_keyword_list_for_search_by_ingredient(
-                keyword.lower())
+                      self.__search_keyword_list_for_search_by_ingredient(
+                          keyword.lower())
         for i in range(len(keywordList)):
             new_recipe_list = self.__search_in_database_by_keyword_ingredient(
                 keywordList[i])
             recipe_list = self.__merge_list(recipe_list, new_recipe_list)
         return recipe_list
+
     '''
-    filterRecipe
+    Filter Recipe by cost and time
     '''
 
     def __filter_by_cost(self, recipe_list, filter_cost):
@@ -438,30 +510,22 @@ class RecipeAPI(Resource):
             recipe for recipe in recipe_list
             if recipe.time_h < int(filter_time_h)
         ]
-        recipe_list = recipe_list_same_h+recipe_list
+        recipe_list = recipe_list_same_h + recipe_list
         return recipe_list
 
     '''
-    [
-        {
-            "name": "apple",
-            "img": "https://spoonacular.com/cdn/ingredients_250x250/apple.jpg"
-        },
-        {   "name": "squash",
-            "img": "https://spoonacular.com/cdn/ingredients_250x250/ \
-                butternut-squash.jpg"},
-        {   "name": "soup",
-            "img": "https://spoonacular.com/cdn/ingredients_250x250/"
-        }
-    ]
+        Get ingredient name from recipe preview
     '''
+
     def __get_ingredient_from_recipe(self, recipe):
         ingredient_json = recipe.ingredients
         ingredient_list = json.loads(ingredient_json)
-        name_list = []
-        for ingredient in ingredient_list:
-            name_list.append(ingredient["name"])
+        name_list = ingredient_list.keys()
         return name_list
+
+    '''
+        Check if all ingredient in a recipe is found in user's inventory
+    '''
 
     def __check_ingredient_in_inventory(self, ingredient_name_list, user_id):
         for ingredient_name in ingredient_name_list:
@@ -469,6 +533,7 @@ class RecipeAPI(Resource):
             ingredient_in_inventory = db.session.query(Inventory).filter(
                 Inventory.user_id.like(user_id),
                 Inventory.ingredient_name.like(ingredient_name)).all()
+
             if len(ingredient_in_inventory) == 0:
                 return False
 
@@ -478,16 +543,25 @@ class RecipeAPI(Resource):
 
         return True
 
+    '''
+        Filter recipe by ingredient in user's inventory
+    '''
+
     def __filter_by_ingredients(self, recipe_list, user_id):
         new_recipe_list = []
         for recipe in recipe_list:
             ingredients_name_list = self.__get_ingredient_from_recipe(recipe)
 
             if self.__check_ingredient_in_inventory(
-                ingredients_name_list, user_id
+                    ingredients_name_list, user_id
             ):
                 new_recipe_list.append(recipe)
         return new_recipe_list
+
+    '''
+        Main filter function, filter recipe by cost, time,
+        and ingredient in user's inventory
+    '''
 
     def __filter_recipe(self, recipe_list, filter_cost, filter_time_h,
                         filter_time_min, filter_has_ingredient, user_id):
@@ -508,7 +582,13 @@ class RecipeAPI(Resource):
             recipe_list = db.session.query(Recipe).all()
         return recipe_list
 
-    # insert recipe to database
+    '''
+        HTTP POST /recipe
+        
+        Add a recipe to the database.
+        Automatically correct the input time for min>60
+    '''
+
     @recipeR.doc(description="Insert recipe to database")
     @recipeR.expect(resourceFields, validate=True)
     @login_required
@@ -523,7 +603,7 @@ class RecipeAPI(Resource):
         new_recipe_tags = request.json["tags"]
 
         if new_recipe_time_min > 60:
-            new_recipe_time_h = new_recipe_time_h+int(new_recipe_time_min/60)
+            new_recipe_time_h = new_recipe_time_h + int(new_recipe_time_min / 60)
             new_recipe_time_min = new_recipe_time_min % 60
 
         new_recipe = Recipe(
@@ -543,57 +623,78 @@ class RecipeAPI(Resource):
             self.__debug_show_table()
         return Response("recipe inserted!", status=200)
 
-    # search recipe by Name and Filter
-    # Example:
-    # http://127.0.0.1:5000/recipe?
-    # Search=juice&
-    # Filter_time_h=10&
-    # Filter_time_min=0&
-    # Filter_cost=10000&
-    # Page=0&
-    # Limit=2
+    '''
+        HTTP GET /recipe/recipe?<Search><Filter_time_h><Filter_time_min><Filter_cost>
+        <Filter_has_ingredients><Page><Limit><user_id>
+        Example:
+        http://127.0.0.1:5000/recipe?Search=meal&Filter_time_h=10&ilter_time_min=0&\
+        Filter_cost=10000&Page=0&Limit=2&user_id=test_user
+        
+        Search the recipe by Name. Filter the recipe by the time and
+        cost limit. Also, it will filter out the recipes that requires
+        ingredient that is not in user's inventory. Then return information
+        for the recipes
+         
+        If no recipe pass the filter and search, it will randomly pick
+        some recipe that match the filter from database and tell
+        the front end that the result is randomly picked up.
+        
+        return format:
+        {
+            recipe: (recipe information)
+            is_random: True/False
+        }
+    '''
+
     @recipeR.doc(description="Get recipe preview json by name and filter",
                  params={
-                        'Search':
-                        {
-                            'description': 'search by an ingredient, \
+                     'Search':
+                         {
+                             'description': 'search by an ingredient, \
                                 recipe name, or tag',
-                            'type': 'string'
-                        },
-                        'Filter_time_h':
-                        {
-                            'description': 'filter by max hours',
-                            'type': 'int'
-                        },
-                        'Filter_time_min':
-                        {
-                            'description': 'filter by max minutes (<60)',
-                            'type': 'int'
-                        },
-                        'Filter_cost':
-                        {
-                            'description': 'filter by max cost',
-                            'type': 'float'
-                        },
-                        'Filter_has_ingredients':
-                        {
-                            'description': 'filter by if user has all the \
+                             'type': 'string'
+                         },
+                     'Filter_time_h':
+                         {
+                             'description': 'filter by max hours',
+                             'type': 'int'
+                         },
+                     'Filter_time_min':
+                         {
+                             'description': 'filter by max minutes (<60)',
+                             'type': 'int'
+                         },
+                     'Filter_cost':
+                         {
+                             'description': 'filter by max cost',
+                             'type': 'float'
+                         },
+                     'Filter_has_ingredients':
+                         {
+                             'description': 'filter by if user has all the \
                                 appropriate ingredients',
-                            'type': 'boolean'
-                        },
-                        'Limit':
-                        {
-                            'description': 'number of recipes to return',
-                            'type': 'int'
-                        },
-                        'Page':
-                        {
-                            'description': 'page number determines range of data \
+                             'type': 'boolean'
+                         },
+                     'Limit':
+                         {
+                             'description': 'number of recipes to return',
+                             'type': 'int'
+                         },
+                     'Page':
+                         {
+                             'description': 'page number determines range of data \
                                 returned: \
                                 [page x limit -> page x limit + limit]',
-                            'type': 'int'
-                        }
-                    })
+                             'type': 'int'
+                         },
+                     'user_id':
+                         {
+                             'description': 'user id for checking the user inventory \
+                                    returned: \
+                                    [page x limit -> page x limit + limit]',
+                             'type': 'int'
+                         }
+                 })
     @login_required
     def get(self):
         # get params
@@ -604,7 +705,7 @@ class RecipeAPI(Resource):
         filter_cost = request.args.get('Filter_cost')
         filter_has_ingredients = \
             bool(request.args.get('Filter_has_ingredients')) \
-            if request.args.get('Filter_has_ingredients') else False
+                if request.args.get('Filter_has_ingredients') else False
         limit = int(request.args.get('Limit')
                     ) if request.args.get('Limit') else 20
         page = int(request.args.get('Page')) if request.args.get('Page') else 0
@@ -641,7 +742,7 @@ class RecipeAPI(Resource):
                 recipe_list, k=min(len(recipe_list), int(limit)))
             page = 0
 
-        recipe_list = recipe_list[limit*page:limit*page+limit]
+        recipe_list = recipe_list[limit * page:limit * page + limit]
 
         return_result = recipes_schema.dump(recipe_list)
 
@@ -668,6 +769,7 @@ class RecipeInventoryCheckerAPI(Resource):
     In case 2, the app should remind users to buy the required ingredients,
     or allow a manual override to continue cooking anyways.
     '''
+
     @login_required
     def get(self, recipe_id, user_id):
         required_res = Recipe.query.get(recipe_id).ingredients
@@ -694,10 +796,10 @@ class RecipeInventoryCheckerAPI(Resource):
             if entry in inventory:
                 if required[entry]['unit'] != inventory[entry]['unit']:
                     return Response(
-                            "Bad unit match while checking ingredient \
-                            requirements for recipe.",
-                            status=400
-                        )
+                        "Bad unit match while checking ingredient \
+                        requirements for recipe.",
+                        status=400
+                    )
                 if inventory[entry]['quantity'] - \
                         required[entry]['quantity'] >= 0:
                     inventory[entry]['quantity'] -= required[entry]['quantity']
@@ -781,6 +883,7 @@ class InventoryAPI(Resource):
     Returns the user's current inventory formatted as depicted in the resource
     field "inventory_fields" documentation.
     '''
+
     @inventoryR.doc(description="Retrieving the user's current inventory.")
     @login_required
     def get(self, user_id):
@@ -801,6 +904,7 @@ class InventoryAPI(Resource):
     Returns the updated inventory, which should be the same as the posted
     document less any errors.
     '''
+
     @inventoryR.doc(description="Posting a new or updated version of the \
         user's inventory.")
     @inventoryR.expect(inventory_fields, validate=True)
@@ -873,6 +977,7 @@ class ShoppingListAPI(Resource):
     Returns the user's current shopping list formatted as depicted in the
     resource field "shopping_fields" documentation.
     '''
+
     @shoppingR.doc(description="Retrieving the user's current shopping list.")
     @login_required
     def get(self, user_id):
@@ -895,6 +1000,7 @@ class ShoppingListAPI(Resource):
     Returns the updated shopping list, which should be the same as the
     posted document less any errors.
     '''
+
     @shoppingR.doc(description="Posting a new or updated version of the \
         user's shopping list.")
     @shoppingR.expect(shopping_fields, validate=True)
@@ -951,6 +1057,7 @@ class ShoppingFlashToInventoryAPI(Resource):
 
     Returns the updated user inventory.
     '''
+
     @inventoryR.doc(description="Push the user's shopping list to the \
         user's inventory.")
     @inventoryR.expect(resource_fields, validate=True)
@@ -1003,7 +1110,7 @@ if __name__ == '__main__':
     # download_recipes() # Only necessary if not enough recipes
     scheduler.start()
 
-    app.run(host='0.0.0.0', debug=False)
+    app.run(host='0.0.0.0')
 
     # Terminate background tasks
     scheduler.shutdown()
