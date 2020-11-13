@@ -577,9 +577,6 @@ class RecipeAPI(Resource):
         if filter_has_ingredient:
             recipe_list = self.__filter_by_ingredients(recipe_list, user_id)
 
-        if len(recipe_list) == 0:
-            self.random_pick = True
-            recipe_list = db.session.query(Recipe).all()
         return recipe_list
 
     '''
