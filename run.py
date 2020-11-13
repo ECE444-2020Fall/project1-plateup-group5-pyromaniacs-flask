@@ -10,7 +10,7 @@ from werkzeug.security import check_password_hash
 from initializer import api, app, db, scheduler
 from models import User, Recipe, Instruction, ShoppingList, Inventory
 from util import flat_list, send_welcome_email
-from background import download_recipes
+from background import download_recipes, update_recipes
 from schemas import UserSchema, RecipeSchema, InstructionSchema, \
     EquipmentSchema, IngredientSchema
 
@@ -1108,6 +1108,7 @@ class ShoppingFlashToInventoryAPI(Resource):
 if __name__ == '__main__':
     db.create_all()
     # download_recipes() # Only necessary if not enough recipes
+    update_recipes()
     scheduler.start()
 
     app.run(host='0.0.0.0')
