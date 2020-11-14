@@ -129,8 +129,8 @@ class UserAPI(Resource):
         # address is likely invalid
         if not send_welcome_email(email, new_user, password):
             return Response(
-                "Mail not sent! Invalid email or server issues, \
-                user not saved.",
+                "Mail not sent! Invalid email or server issues, "
+                "user not saved.",
                 status=400
             )
 
@@ -189,8 +189,8 @@ class LoginAPI(Resource):
             return user_schema.jsonify(user)
 
         return Response(
-            "Login failed! Please confirm that the email and password \
-                are correct.",
+            "Login failed! Please confirm that the email and password "
+            "are correct.",
             status=403
         )
 
@@ -339,9 +339,10 @@ class RecipeDetailAPI(Resource):
 
     '''
         HTTP POST /recipe/<recipe_id>
-        Add one step of recipe instruction including equipement and ingredients
-        to the database. It will check if there is a conflict instruction that has
-        same description exist. If yes, it will not insert the new instruction.
+        Add one step of recipe instruction including equipement and
+        ingredients to the database. It will check if there is a conflict
+        instruction that has same description exist. If yes, it will not
+        insert the new instruction.
     '''
 
     @recipeR.doc(description="Insert recipe instruction to database")
@@ -462,7 +463,7 @@ class RecipeAPI(Resource):
         recipe_list = []
         keywordList = self.__search_keyword_list_for_search_by_name(keyword)
         keywordList = keywordList + \
-                      self.__search_keyword_list_for_search_by_name(keyword.lower())
+            self.__search_keyword_list_for_search_by_name(keyword.lower())
         for i in range(len(keywordList)):
             new_recipe_list = self.__search_in_database_by_keyword_name(
                 keywordList[i])
@@ -476,8 +477,8 @@ class RecipeAPI(Resource):
         keywordList = self.__search_keyword_list_for_search_by_ingredient(
             keyword)
         keywordList = keywordList + \
-                      self.__search_keyword_list_for_search_by_ingredient(
-                          keyword.lower())
+            self.__search_keyword_list_for_search_by_ingredient(
+                keyword.lower())
         for i in range(len(keywordList)):
             new_recipe_list = self.__search_in_database_by_keyword_ingredient(
                 keywordList[i])
@@ -586,18 +587,17 @@ class RecipeAPI(Resource):
                 recipe_list = self.__filter_by_time(
                     recipe_list, filter_time_h, filter_time_min)
             if filter_has_ingredient:
-                recipe_list = self.__filter_by_ingredients(recipe_list, user_id)
-
+                recipe_list = self.__filter_by_ingredients(
+                    recipe_list, user_id)
 
         return recipe_list
 
     '''
         HTTP POST /recipe
-        
+
         Add a recipe to the database.
         Automatically correct the input time for min>60
     '''
-
     @recipeR.doc(description="Insert recipe to database")
     @recipeR.expect(resourceFields, validate=True)
     @login_required
@@ -612,7 +612,8 @@ class RecipeAPI(Resource):
         new_recipe_tags = request.json["tags"]
 
         if new_recipe_time_min > 60:
-            new_recipe_time_h = new_recipe_time_h + int(new_recipe_time_min / 60)
+            new_recipe_time_h = new_recipe_time_h + \
+                int(new_recipe_time_min / 60)
             new_recipe_time_min = new_recipe_time_min % 60
 
         new_recipe = Recipe(
@@ -631,21 +632,21 @@ class RecipeAPI(Resource):
         return Response("recipe inserted!", status=200)
 
     '''
-        HTTP GET /recipe/recipe?<Search><Filter_time_h><Filter_time_min><Filter_cost>
-        <Filter_has_ingredients><Page><Limit><user_id>
+        HTTP GET /recipe/recipe?<Search><Filter_time_h><Filter_time_min>
+        <Filter_cost><Filter_has_ingredients><Page><Limit><user_id>
         Example:
         http://127.0.0.1:5000/recipe?Search=meal&Filter_time_h=10&ilter_time_min=0&\
         Filter_cost=10000&Page=0&Limit=2&user_id=test_user
-        
+
         Search the recipe by Name. Filter the recipe by the time and
         cost limit. Also, it will filter out the recipes that requires
         ingredient that is not in user's inventory. Then return information
         for the recipes
-         
+
         If no recipe pass the filter and search, it will randomly pick
         some recipe that match the filter from database and tell
         the front end that the result is randomly picked up.
-        
+
         return format:
         {
             recipe: (recipe information)
@@ -696,7 +697,8 @@ class RecipeAPI(Resource):
                          },
                      'user_id':
                          {
-                             'description': 'user id for checking the user inventory',
+                             'description': 'user id for checking the user \
+                                inventory',
                              'type': 'int'
                          }
                  })
@@ -710,7 +712,7 @@ class RecipeAPI(Resource):
         filter_cost = request.args.get('Filter_cost')
         filter_has_ingredients = \
             bool(request.args.get('Filter_has_ingredients')) \
-                if request.args.get('Filter_has_ingredients') else False
+            if request.args.get('Filter_has_ingredients') else False
         limit = int(request.args.get('Limit')
                     ) if request.args.get('Limit') else 20
         page = int(request.args.get('Page')) if request.args.get('Page') else 0
@@ -801,8 +803,8 @@ class RecipeInventoryCheckerAPI(Resource):
             if entry in inventory:
                 if required[entry]['unit'] != inventory[entry]['unit']:
                     return Response(
-                        "Bad unit match while checking ingredient \
-                        requirements for recipe.",
+                        "Bad unit match while checking ingredient "
+                        "requirements for recipe.",
                         status=400
                     )
                 if inventory[entry]['quantity'] - \
