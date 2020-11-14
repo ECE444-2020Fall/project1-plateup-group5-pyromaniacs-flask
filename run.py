@@ -129,8 +129,8 @@ class UserAPI(Resource):
         # address is likely invalid
         if not send_welcome_email(email, new_user, password):
             return Response(
-                "Mail not sent! Invalid email or server issues, \
-                user not saved.",
+                "Mail not sent! Invalid email or server issues, "
+                "user not saved.",
                 status=400
             )
 
@@ -189,8 +189,8 @@ class LoginAPI(Resource):
             return user_schema.jsonify(user)
 
         return Response(
-            "Login failed! Please confirm that the email and password \
-                are correct.",
+            "Login failed! Please confirm that the email and password "
+            "are correct.",
             status=403
         )
 
@@ -801,8 +801,8 @@ class RecipeInventoryCheckerAPI(Resource):
             if entry in inventory:
                 if required[entry]['unit'] != inventory[entry]['unit']:
                     return Response(
-                        "Bad unit match while checking ingredient \
-                        requirements for recipe.",
+                        "Bad unit match while checking ingredient "
+                        "requirements for recipe.",
                         status=400
                     )
                 if inventory[entry]['quantity'] - \
