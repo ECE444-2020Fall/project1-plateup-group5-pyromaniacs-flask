@@ -10,98 +10,26 @@ This is a submodule of the PlateUp main repo, all development instructions are a
 
  
 ## OpenAPI (formerly swagger) documentation overview 
-<p align="center">
-<img alt="Overview of swagger routes" src="documentation/swagger_routes.png" width="90%" align="center"/>
-</p>
+Please see our [Wiki](https://github.com/ECE444-2020Fall/project1-plateup-group5-pyromaniacs-flask/wiki)
 
-API spec base url: https://sheltered-thicket-73220.herokuapp.com/swagger.json
-
-## This API currently offers the following features (updated Nov 12 2020):
-
-### User Account Creation, Retrieval, and Deletion
-The following shows a sample flow of the user account creation process as seen from the backend service's perspective. A welcome email is sent to the user after successful account creation. This is mostly for development purposes at the moment, such as retrieving the user-id, but the email could be improved in the future to be user-friendly.
- 
-<p align="center">
-<img alt="Onboarding a new user" src="documentation/user_onboarding.gif" width="90%" align="center"/>
-</p>
- 
-### User Login
-Logging in after account creation is as simple as inputting the user's email and password, just like most mobile apps.
- 
-<p align="center">
-<img alt="Logging in as a user" src="documentation/user_login.gif" width="90%" align="center"/>
-</p>
-
-Most APIs are restricted to logged-in users for security reasons. If the user doesn't have an active session with the API service, they will be forbidden from issuing requests to most endpoints. Here, we test it with the default route.
- 
-<p align="center">
-<img alt="Logging out as a user" src="documentation/logout.gif" width="90%" align="center"/>
-</p>
-
-### Recipe Retrieval
-After a new user registers and logs in, they can immediately search recipes. By default, the route will return a randomized list of the most popular recipes. Popularity is based on the "popular" tag from the Spoonacular source, but future plans include tracking the number of users who cooked each recipe.
- 
-<p align="center">
-<img alt="Fetching a random list of popular recipes" src="documentation/recipe_no_search.gif" width="90%" align="center"/>
-</p>
-
- 
-Of course, all the search and filtering functionality is also supported. Here is an example of searching for chicken. Through the backend, the returned json is a bit difficult to read (hence the mobile app experience is necessary), but still possible to see that the search functions as expected.
- 
-<p align="center">
-<img alt="Fetching a searched list of chicken recipes" src="documentation/recipe_search.gif" width="90%" align="center"/>
-</p>
- 
- 
-### Inventory, Shopping List, and Recipes based on Inventory Checking
-The original intent of the app was the recommend recipes based on available ingredients, and this is fully supported through applying filters. More interestingly, we also support automating the process of checking whether or not the user has all the ingredients for a recipe if they choose to go ahead with cooking it (rather than just searching for recipes). To make this more clear, the following are the demos.
-
-Once a user selects a recipe, they can copy the recipe ID and their user ID and issue a GET request at the recipe checker endpoint. Keep in mind that for this backend service, the "user" in this case is the frontend mobile client, so all this "id copying" is abstracted away on the frontend.
- 
-<p align="center">
-<img alt="Using the recipe checker - not enough ingredients" src="documentation/recipe_check_no_ingredients.gif" width="90%" align="center"/>
-</p>
- 
- 
-If the user doesn't have enough ingredients, the missing ingredients are automatically sent to the user's shopping list, so that they can buy it on their next grocery trip. Of course, this demonstrates the GET request to see the updated shopping list with ingredients required by the recipe (since this was a new user, their inventory and shopping list were both empty). The user can also manually add items to either their inventory or shopping list through POST, not shown here.
-
-<p align="center">
-<img alt="Using the shopping list API" src="documentation/recipe_shopping_list.gif" width="90%" align="center"/>
-</p>
- 
- 
-After the user's grocery trip, there is a /flash endpoint for shopping list that pushes their list items to their inventory without having to manually manage it. For now, the flash will push all the shopping list items, but it is possible to expand this to support partial transfers in the future (user can select which items they bought and update the partial list to inventory). After flashing, we can see that the user's inventory is now populated with the ingredients from the shopping list. The shopping list is now empty. 
- 
-<p align="center">
-<img alt="Using the shopping list flash endpoint" src="documentation/flash_to_inventory.gif" width="90%" align="center"/>
-</p>
- 
- 
-Finally, now that the user has all the ingredients, they can once again use the recipe checker to cook the specified recipe. Now, the service will deduct all the appropriate ingredients from their inventory. This gif shows the cleared inventory after the user cooks the recipe, which was the initial state before all these steps.
- 
-<p align="center">
-<img alt="Cooking the recipe with sufficient ingredients" src="documentation/cleared_inventory.gif" width="90%" align="center"/>
-</p> 
- 
- 
-To summarize, we just showed through entirely backend calls a user's journey as they are onboarded, logged in, searched for a recipe, tried to cook a recipe and not have enough ingredients, used the shopping list to acquire the ingredients, pushing the purchased ingredients to their inventory, cooking the recipe with ingredients from the inventory, and finally they once again have a clear inventory as those ingredients were deducted.
- 
 ## Testing on APIS
 Currently the unit testing implemented on backend covers 73% of the code. Here is the results:
-| Name | Stmts | Miss | Cover | 
-| ---- | ----- | ---- | ----- |
-| background.py | 17 | 12 | 29% | 
-| emailservice.py | 21 | 17 | 19% | 
-| initializer.py | 22 | 0 | 100% | 
-| models.py | 77 | 0 | 100% | 
-| run.py | 412 | 116 | 72% | 
-| schemas.py | 16 | 0 | 100% | 
-| tests\\__init__.py | 0 | 0 | 100% | 
-| tests\run_test.py | 170 | 16 | 91% | 
-| util.py | 71 | 59 | 17% | 
-| TOTAL | 806 | 220 | 73% | 
 
-The team is trying to let the test to covers more codes. Since the back end system on this project is very large and the time limit is short, the team cannot covers all code. But the team will try to implement more unit test to cover the code on the backend in future release
+Name                Stmts   Miss  Cover
+---------------------------------------
+background.py          17     12    29%
+emailservice.py        21     17    19%
+initializer.py         22      0   100%
+models.py              77      0   100%
+run.py                412    116    72%
+schemas.py             16      0   100%
+tests\__init__.py       0      0   100%
+tests\run_test.py     170     16    91%
+util.py                71     59    17%
+---------------------------------------
+TOTAL                 806    220    73%
+
+The overall code coverate is at 73%. Specifically, the files with low coverage include background.py, emailservice.py and util.py, which is for retrieving recipes from spoonacular (and other sources in the future), for mailing clients, and for various misc utility functions respectively. All of these are tested through integration testing and user testing extensively. Nevertheless, the team is aiming for 85%+ unit test coverage. Our backend service is pretty large at over 1000 lines of code, so given the time constraints, we were satisfied with reaching 70% coverage, specifically for important files such as run.py (main API endpoints) and models.py (database definition).
 
 ## Why use OpenAPI spec and swagger documentation?
 OpenAPI is the group's choice for a backend to frontend hand-off tool, but also follows an industry standard for development against APIs. Due to PlateUp's achitecture as a server-client application, the functionality of backend services must be testable separately from the frontend application. As such, OpenAPI documentation allows us to excessively document all our endpoints and routes, as well as test it as shown in the gifs above. Coupled with our unit tests, this form of integration testing really ensures good application quality. 
