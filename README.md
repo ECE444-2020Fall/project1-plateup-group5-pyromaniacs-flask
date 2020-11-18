@@ -15,21 +15,20 @@ Please see our [Wiki](https://github.com/ECE444-2020Fall/project1-plateup-group5
 ## Testing on APIS
 Currently the unit testing implemented on backend covers 73% of the code. Here is the results:
 
-Name                Stmts   Miss  Cover
----------------------------------------
-background.py          17     12    29%
-emailservice.py        21     17    19%
-initializer.py         22      0   100%
-models.py              77      0   100%
-run.py                412    116    72%
-schemas.py             16      0   100%
-tests\__init__.py       0      0   100%
-tests\run_test.py     170     16    91%
-util.py                71     59    17%
----------------------------------------
-TOTAL                 806    220    73%
+| Name | Stmts | Miss | Cover | 
+| ---- | ----- | ---- | ----- |
+| background.py | 17 | 12 | 29% | 
+| emailservice.py | 21 | 17 | 19% | 
+| initializer.py | 22 | 0 | 100% | 
+| models.py | 77 | 0 | 100% | 
+| run.py | 412 | 116 | 72% | 
+| schemas.py | 16 | 0 | 100% | 
+| tests\\__init__.py | 0 | 0 | 100% | 
+| tests\run_test.py | 170 | 16 | 91% | 
+| util.py | 71 | 59 | 17% | 
+| TOTAL | 806 | 220 | 73% | 
 
-The overall code coverate is at 73%. Specifically, the files with low coverage include background.py, emailservice.py and util.py, which is for retrieving recipes from spoonacular (and other sources in the future), for mailing clients, and for various misc utility functions respectively. All of these are tested through integration testing and user testing extensively. Nevertheless, the team is aiming for 85%+ unit test coverage. Our backend service is pretty large at over 1000 lines of code, so given the time constraints, we were satisfied with reaching 70% coverage, specifically for important files such as run.py (main API endpoints) and models.py (database definition).
+Specifically, the files with low coverage include background.py, emailservice.py and util.py, which is for retrieving recipes from spoonacular (and other sources in the future), for mailing clients, and for various misc utility functions respectively. All of these are tested through integration testing and user testing extensively. Nevertheless, the team is aiming for 85%+ unit test coverage. Our backend service is pretty large at over 1000 lines of code, so given the time constraints, we were satisfied with reaching 70% coverage, specifically for important files such as run.py (main API endpoints) and models.py (database definition).
 
 ## Why use OpenAPI spec and swagger documentation?
 OpenAPI is the group's choice for a backend to frontend hand-off tool, but also follows an industry standard for development against APIs. Due to PlateUp's achitecture as a server-client application, the functionality of backend services must be testable separately from the frontend application. As such, OpenAPI documentation allows us to excessively document all our endpoints and routes, as well as test it as shown in the gifs above. Coupled with our unit tests, this form of integration testing really ensures good application quality. 
