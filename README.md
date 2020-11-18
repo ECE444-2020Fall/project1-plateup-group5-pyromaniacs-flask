@@ -9,7 +9,7 @@ Hello! Welcome to PlateUp's API service submodule.
 This is a submodule of the PlateUp main repo, all development instructions are available in the main repo. This submodule was created near beta release to facilitate heroku staging deployment, and to better track issues and update documentation. 
 
 ## OpenAPI (formerly swagger) documentation overview 
-Please see our [Wiki](https://github.com/ECE444-2020Fall/project1-plateup-group5-pyromaniacs-flask/wiki)
+Please see our [Wiki](https://github.com/ECE444-2020Fall/project1-plateup-group5-pyromaniacs-flask/wiki).
 
 ## Test Coverage
 Currently the unit testing implemented on backend covers 73% of the code. Here is the results:
