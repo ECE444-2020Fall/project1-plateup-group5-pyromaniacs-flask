@@ -22,7 +22,7 @@ Currently the unit testing implemented on backend covers 73% of the code. Here i
 | models.py | 77 | 0 | 100% | 
 | run.py | 412 | 116 | 72% | 
 | schemas.py | 16 | 0 | 100% | 
-| tests\__init__.py | 0 | 0 | 100% | 
+| tests\\_\_init\_\_.py | 0 | 0 | 100% | 
 | tests\run_test.py | 170 | 16 | 91% | 
 | util.py | 71 | 59 | 17% | 
 | TOTAL | 806 | 220 | 73% | 
